@@ -56,7 +56,13 @@ end
 
 Create SEO configs under `app/seo/pages/`.
 
-### Example: User
+You can scaffold a page file with:
+
+```sh
+rails generate fast_seo:page user User
+```
+
+This creates:
 
 ```ruby
 # app/seo/pages/user_seo.rb
@@ -69,7 +75,13 @@ FastSEO.page :user, model: "User", route: :user_url,
   providers: [:open_graph, :twitter]
 ```
 
-### Example: Namespaced Model
+For namespaced models:
+
+```sh
+rails generate fast_seo:page work_job Work::Job
+```
+
+Creates:
 
 ```ruby
 # app/seo/pages/work_job_seo.rb
@@ -185,4 +197,3 @@ gem "fast_seo", github: "rshrc/fast_seo"
 ```
 
 ---
-

@@ -1,43 +1,188 @@
-# FastSeo
+# FastSEO
 
-TODO: Delete this and the text below, and describe your gem
+**FastSEO** is a Rails-friendly gem for SEO meta tags + [schema.org](https://schema.org) structured data.
+It’s convention-driven, DSL-powered, and fully extensible.
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/fast_seo`. To experiment with that code, run `bin/console` for an interactive prompt.
+* 🔮 **DSL-first**: declare SEO per page in `app/seo/pages/*_seo.rb`
+* ⚡ **Providers**: Open Graph, Twitter, Facebook, LinkedIn, and custom ones via a tiny DSL
+* 📦 **Schema registry**: prebuilt schemas (`:profile_page`, `:breadcrumb_list`) and easy extension
+* 🎯 **Rails-native**: supports namespaced models (`Profiles::User` → `:profiles_user`) and Rails URL helpers
 
-## Installation
+---
 
-TODO: Replace `UPDATE_WITH_YOUR_GEM_NAME_IMMEDIATELY_AFTER_RELEASE_TO_RUBYGEMS_ORG` with your gem name right after releasing it to RubyGems.org. Please do not do it earlier due to security reasons. Alternatively, replace this section with instructions to install your gem from git if you don't plan to release to RubyGems.org.
+## 🚀 Installation
 
-Install the gem and add to the application's Gemfile by executing:
+Since the gem isn’t published to RubyGems yet, install it directly from GitHub:
 
-```bash
-bundle add UPDATE_WITH_YOUR_GEM_NAME_IMMEDIATELY_AFTER_RELEASE_TO_RUBYGEMS_ORG
+```ruby
+# Gemfile
+gem "fast_seo", github: "rshrc/fast_seo"
 ```
 
-If bundler is not being used to manage dependencies, install the gem by executing:
+Then bundle:
 
-```bash
-gem install UPDATE_WITH_YOUR_GEM_NAME_IMMEDIATELY_AFTER_RELEASE_TO_RUBYGEMS_ORG
+```sh
+bundle install
 ```
 
-## Usage
+---
 
-TODO: Write usage instructions here
+## ⚙️ Configuration
 
-## Development
+Run the installer generator:
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+```sh
+rails generate fast_seo:install
+```
 
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and the created tag, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+This creates `config/initializers/fast_seo.rb`:
 
-## Contributing
+```ruby
+FastSEO.configure do |c|
+  c.default_title    = "MySite"
+  c.default_desc     = "Default description"
+  c.default_image    = "default.png"
+  c.default_keywords = "keywords, here"
+  c.twitter_handle   = "@mysite"
+  c.site_name        = "MySite"
+  c.facebook_app_id  = "123456"
+  c.providers        = [:open_graph, :twitter] # global defaults
+end
+```
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/fast_seo. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [code of conduct](https://github.com/[USERNAME]/fast_seo/blob/main/CODE_OF_CONDUCT.md).
+---
 
-## License
+## 📝 Defining Pages
 
-The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
+Create SEO configs under `app/seo/pages/`.
 
-## Code of Conduct
+### Example: User
 
-Everyone interacting in the FastSeo project's codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/[USERNAME]/fast_seo/blob/main/CODE_OF_CONDUCT.md).
+```ruby
+# app/seo/pages/user_seo.rb
+FastSEO.page :user, model: "User", route: :user_url,
+  og_type: :profile,
+  title: :full_name_for_seo,
+  description: ->(u) { "#{u.full_name_for_seo} is a #{u.primary_role_for_seo}" },
+  image: :public_image_url_for_seo,
+  schema: [:profile_page, :breadcrumb_list],
+  providers: [:open_graph, :twitter]
+```
+
+### Example: Namespaced Model
+
+```ruby
+# app/seo/pages/work_job_seo.rb
+FastSEO.page :work_job, model: "Work::Job", route: :job_url,
+  og_type: :article,
+  title: :title,
+  description: :summary,
+  image: :cover_image_url,
+  schema: [:job_posting, :breadcrumb_list]
+```
+
+👉 `Profiles::User` becomes `:profiles_user` automatically.
+
+---
+
+## 📄 Using in Views
+
+In any view or layout:
+
+```erb
+<head>
+  <%= seo_tags(@user) %>
+  <%= seo_schema(@user) %>
+</head>
+```
+
+---
+
+## 🔌 Providers DSL
+
+Providers are declared once and reused. Built-ins include `:open_graph`, `:twitter`, `:facebook`.
+
+Example built-in Open Graph:
+
+```ruby
+FastSEO::Providers.register(:open_graph) do
+  property :title,       "og:title"
+  property :description, "og:description"
+  property :og_type,     "og:type"
+  property :current_url, "og:url"
+  property :image_url,   "og:image"
+  property :site_name,   "og:site_name", -> { FastSEO.configuration.site_name }
+end
+```
+
+Custom example:
+
+```ruby
+FastSEO::Providers.register(:pinterest) do
+  name :title, "pinterest:title"
+  name :image_url, "pinterest:image"
+end
+```
+
+Per-page override:
+
+```ruby
+FastSEO.page :movie, model: "Movie", route: :movie_url,
+  title: :title,
+  providers: [:open_graph, :twitter, :pinterest]
+```
+
+---
+
+## 🧩 Schema Parts
+
+Schemas are modular:
+
+```ruby
+FastSEO::SchemaParts.register(:book) do |page|
+  b = page.obj
+  { "@type": "Book", name: b.title, author: b.author }
+end
+```
+
+Attach via page:
+
+```ruby
+FastSEO.page :book, model: "Book", route: :book_url,
+  title: :title,
+  schema: [:book, :breadcrumb_list]
+```
+
+---
+
+## ✅ Conventions
+
+* `Profiles::User` → page key `:profiles_user`
+* Works with Rails URL helpers (`:user_url`, `:job_url`)
+* Falls back to global config if values are missing
+* Global providers from config, overridable per page
+
+---
+
+## 🛠 Development & Local Gem Usage
+
+To build locally:
+
+```sh
+gem build fast_seo.gemspec
+```
+
+To use locally in another app:
+
+```ruby
+gem "fast_seo", path: "../fast_seo"
+```
+
+Or push to GitHub (private or public) and use:
+
+```ruby
+gem "fast_seo", github: "rshrc/fast_seo"
+```
+
+---
+

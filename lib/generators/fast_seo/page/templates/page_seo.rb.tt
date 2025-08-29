@@ -1,0 +1,7 @@
+FastSEO.page :<%= name.underscore %>, model: "<%= model %>", route: :<%= name.underscore %>_url,
+  og_type: :article,
+  title: :title,
+  description: :summary,
+  image: :cover_image_url,
+  schema: [:breadcrumb_list],
+  providers: [:open_graph, :twitter]
